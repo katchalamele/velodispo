@@ -1,0 +1,16 @@
+{
+  "last_updated": 1784559564,
+  "ttl": 3600,
+  "version": "2.3",
+  "data": {
+    "fr": {
+      "feeds": [
+        { "name": "gbfs_versions", "url": "https://api.cyclocity.fr/contracts/nantes/gbfs/v2/gbfs_versions.json" },
+        { "name": "station_information", "url": "https://api.cyclocity.fr/contracts/nantes/gbfs/v2/station_information.json" },
+        { "name": "system_information", "url": "https://api.cyclocity.fr/contracts/nantes/gbfs/v2/system_information.json" },
+        { "name": "station_status", "url": "https://api.cyclocity.fr/contracts/nantes/gbfs/v2/station_status.json" },
+        { "name": "vehicle_types", "url": "https://api.cyclocity.fr/contracts/nantes/gbfs/v2/vehicle_types.json" }
+      ]
+    }
+  }
+}

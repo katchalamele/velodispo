@@ -1,0 +1,21 @@
+{
+  "last_updated": 1609459200,
+  "ttl": 60,
+  "data": {
+    "stations": [
+      {
+        "station_id": "42",
+        "name": "Châtelet",
+        "lat": 48.85837,
+        "lon": 2.34701,
+        "capacity": 20
+      },
+      {
+        "station_id": "99",
+        "name": "Bastille",
+        "lat": 48.85319,
+        "lon": 2.36929
+      }
+    ]
+  }
+}

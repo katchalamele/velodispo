@@ -1,0 +1,24 @@
+# Binaires compilés
+/bin/
+*.exe
+*.out
+
+# Artefacts de test / couverture
+*.test
+coverage.out
+coverage.html
+
+# Caches d'outillage locaux (le build passe par Docker)
+.cache/
+
+# Fichiers d'environnement / secrets
+.env
+.env.local
+
+# Dossiers d'IDE
+.idea/
+.vscode/
+*.swp
+
+# macOS
+.DS_Store

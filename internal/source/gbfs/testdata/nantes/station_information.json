@@ -1,0 +1,35 @@
+{
+  "last_updated": 1784561202,
+  "ttl": 300,
+  "version": "2.3",
+  "data": {
+    "stations": [
+      {
+        "station_id": "1",
+        "name": "PRÉFECTURE",
+        "lat": 47.21984,
+        "lon": -1.554891,
+        "address": "Place du Port Communeau",
+        "rental_methods": ["creditcard"],
+        "capacity": 33
+      },
+      {
+        "station_id": "6",
+        "name": "COMMERCE",
+        "lat": 47.214321,
+        "lon": -1.560125,
+        "address": "Place du Commerce",
+        "rental_methods": ["creditcard"],
+        "capacity": 25
+      },
+      {
+        "station_id": "12",
+        "name": "GARE SNCF NORD",
+        "lat": 47.217453,
+        "lon": -1.542123,
+        "address": "Boulevard de Stalingrad",
+        "capacity": 40
+      }
+    ]
+  }
+}

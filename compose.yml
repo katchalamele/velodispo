@@ -1,0 +1,53 @@
+# Workflow de développement 100 % conteneurisé pour l'étape 1.
+# Aucun toolchain Go n'est requis sur la machine hôte : tout passe par ces
+# services jetables. Le cache des modules Go est persisté dans un volume nommé
+# pour accélérer les exécutions suivantes.
+#
+# Usage :
+#   docker compose run --rm test    # lance la suite de tests
+#   docker compose run --rm vet     # go vet
+#   docker compose run --rm build   # go build de tout l'arbre
+#   docker compose run --rm fmt     # vérifie le formatage (gofmt -l)
+#   docker compose run --rm dev sh  # shell interactif dans le conteneur
+#
+# Note : les services applicatifs (app + Postgres/TimescaleDB + Adminer) seront
+# ajoutés à l'étape 2, quand la persistance entrera en jeu.
+
+x-go-common: &go-common
+  image: golang:1.22-alpine
+  working_dir: /app
+  environment:
+    # Cache de compilation et modules hors de l'arbre monté, dans le volume.
+    GOFLAGS: -mod=mod
+    GOCACHE: /go/cache
+  volumes:
+    - .:/app
+    - go-mod-cache:/go/pkg/mod
+    - go-build-cache:/go/cache
+
+services:
+  test:
+    <<: *go-common
+    command: ["go", "test", "./..."]
+
+  vet:
+    <<: *go-common
+    command: ["go", "vet", "./..."]
+
+  build:
+    <<: *go-common
+    command: ["go", "build", "./..."]
+
+  fmt:
+    <<: *go-common
+    # gofmt -l liste les fichiers mal formatés ; on échoue si la liste est non vide.
+    entrypoint: ["sh", "-c"]
+    command: ['test -z "$(gofmt -l .)" || { echo "Fichiers non formatés :"; gofmt -l .; exit 1; }']
+
+  dev:
+    <<: *go-common
+    command: ["sh"]
+
+volumes:
+  go-mod-cache:
+  go-build-cache:
