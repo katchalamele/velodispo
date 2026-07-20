@@ -6,8 +6,6 @@ import (
 	"github.com/katchalamele/velodispo/internal/domain"
 )
 
-// toStation convertit une station GBFS brute vers le modèle de domaine. Le nom de
-// la ville provient de la config, pas du flux.
 func toStation(city string, s stationInformation) domain.Station {
 	return domain.Station{
 		ID:       s.StationID,
@@ -20,9 +18,6 @@ func toStation(city string, s stationInformation) domain.Station {
 	}
 }
 
-// toStatus convertit un statut GBFS brut vers le modèle de domaine. L'horodatage
-// last_reported est un epoch Unix (commun 1.x / 2.x) converti en time.Time UTC ;
-// une valeur absente (0) donne un time.Time zéro plutôt qu'une date de 1970.
 func toStatus(s stationStatus) domain.Status {
 	var reported time.Time
 	if s.LastReported > 0 {

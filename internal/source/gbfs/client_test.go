@@ -15,10 +15,6 @@ import (
 	"github.com/katchalamele/velodispo/internal/domain"
 )
 
-// fixtureServer monte un serveur HTTP local qui sert les fixtures d'un dossier
-// testdata donné. Le gbfs.json est réécrit à la volée pour que les URLs des flux
-// pointent vers ce serveur de test (le reste de la structure est conservé). Le
-// compteur discoveryHits permet de vérifier la mise en cache de la découverte.
 func fixtureServer(t *testing.T, dir string) (*httptest.Server, *int64) {
 	t.Helper()
 
@@ -57,8 +53,7 @@ func fixtureServer(t *testing.T, dir string) (*httptest.Server, *int64) {
 	return srv, &discoveryHits
 }
 
-// rewriteDiscovery réécrit les URLs des flux du gbfs.json pour qu'elles pointent
-// vers base, en conservant le nom de fichier terminal (station_status.json, ...).
+// rewriteDiscovery fait pointer les URLs des flux vers le serveur de test.
 func rewriteDiscovery(t *testing.T, raw []byte, base string) []byte {
 	t.Helper()
 	var file struct {
@@ -116,8 +111,7 @@ func TestClientStations(t *testing.T) {
 		t.Errorf("City() = %q, attendu Nantes", got)
 	}
 
-	byID := indexStations(stations)
-	pref := byID["1"]
+	pref := indexStations(stations)["1"]
 	if pref.Name != "PRÉFECTURE" {
 		t.Errorf("station 1 name = %q, attendu PRÉFECTURE", pref.Name)
 	}
@@ -156,8 +150,6 @@ func TestClientStatuses(t *testing.T) {
 	}
 }
 
-// TestClientVersionAwareV1 prouve que le même adaptateur consomme un flux GBFS
-// 1.0 : booléens exprimés en 0/1 et absence de champ version top-level.
 func TestClientVersionAwareV1(t *testing.T) {
 	srv, _ := fixtureServer(t, "v1")
 	c := New(Config{City: "Paris", DiscoveryURL: srv.URL + "/gbfs.json"}, srv.Client())
@@ -166,9 +158,7 @@ func TestClientVersionAwareV1(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Statuses v1: %v", err)
 	}
-	byID := indexStatuses(statuses)
-
-	s42 := byID["42"]
+	s42 := indexStatuses(statuses)["42"]
 	if !s42.IsInstalled || !s42.IsRenting {
 		t.Errorf("station 42 : is_installed/is_renting=1 devaient donner true, got %+v", s42)
 	}
@@ -188,12 +178,10 @@ func TestClientVersionAwareV1(t *testing.T) {
 		t.Errorf("station 99 sans capacity devait donner 0, got %d", s99.Capacity)
 	}
 	if s99.City != "Paris" {
-		t.Errorf("station 99 city = %q, attendu Paris (issue de la config, pas du flux)", s99.City)
+		t.Errorf("station 99 city = %q, attendu Paris", s99.City)
 	}
 }
 
-// TestDiscoveryCached vérifie que le gbfs.json n'est lu qu'une fois même en
-// enchaînant Stations puis Statuses.
 func TestDiscoveryCached(t *testing.T) {
 	srv, hits := fixtureServer(t, "nantes")
 	c := New(Config{City: "Nantes", DiscoveryURL: srv.URL + "/gbfs.json", PreferredLang: "fr"}, srv.Client())
@@ -210,7 +198,6 @@ func TestDiscoveryCached(t *testing.T) {
 }
 
 func TestMissingFeed(t *testing.T) {
-	// Découverte ne publiant qu'un seul flux : station_status est absent.
 	mux := http.NewServeMux()
 	var srv *httptest.Server
 	mux.HandleFunc("/gbfs.json", func(w http.ResponseWriter, r *http.Request) {
@@ -240,7 +227,7 @@ func TestContextCancelled(t *testing.T) {
 	c := New(Config{City: "Nantes", DiscoveryURL: srv.URL + "/gbfs.json", PreferredLang: "fr"}, srv.Client())
 
 	ctx, cancel := context.WithCancel(context.Background())
-	cancel() // annulé avant tout appel
+	cancel()
 
 	if _, err := c.Stations(ctx); err == nil {
 		t.Fatal("Stations aurait dû échouer avec un context annulé")

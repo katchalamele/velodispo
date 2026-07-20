@@ -6,12 +6,6 @@ import (
 	"fmt"
 )
 
-// Les types de ce fichier décrivent le format GBFS *brut*, tel qu'il arrive sur
-// le réseau. Ils restent internes à l'adaptateur : rien de tout cela ne fuit
-// vers internal/domain. Le décodage est volontairement tolérant aux différences
-// entre GBFS 1.x et 2.x (c'est le cœur de l'aspect « version-aware »).
-
-// gbfsFile est l'enveloppe commune à tous les flux GBFS.
 type gbfsFile struct {
 	LastUpdated int64           `json:"last_updated"`
 	TTL         int             `json:"ttl"`
@@ -19,9 +13,6 @@ type gbfsFile struct {
 	Data        json.RawMessage `json:"data"`
 }
 
-// discoveryData correspond au corps de gbfs.json : une map indexée par code
-// langue (1.x et 2.x partagent cette structure ; la 3.0, non gérée ici,
-// aplatit les feeds). On la décode donc comme map[lang]feedSet.
 type feedSet struct {
 	Feeds []feed `json:"feeds"`
 }
@@ -31,7 +22,6 @@ type feed struct {
 	URL  string `json:"url"`
 }
 
-// stationInformationData correspond au corps de station_information.json.
 type stationInformationData struct {
 	Stations []stationInformation `json:"stations"`
 }
@@ -45,7 +35,6 @@ type stationInformation struct {
 	Capacity  int     `json:"capacity"`
 }
 
-// stationStatusData correspond au corps de station_status.json.
 type stationStatusData struct {
 	Stations []stationStatus `json:"stations"`
 }
@@ -62,24 +51,17 @@ type stationStatus struct {
 	LastReported      int64    `json:"last_reported"`
 }
 
-// flexBool décode un booléen GBFS qu'il soit exprimé en true/false (GBFS 2.x,
-// conforme au schéma) ou en 0/1 (certains flux GBFS 1.0 historiques). C'est le
-// point précis où la variabilité de version est absorbée.
+// flexBool tolère true/false (GBFS 2.x) et 0/1 (GBFS 1.0).
 type flexBool bool
 
 func (b *flexBool) UnmarshalJSON(data []byte) error {
-	data = bytes.TrimSpace(data)
-	switch {
-	case bytes.Equal(data, []byte("true")), bytes.Equal(data, []byte("1")):
+	switch string(bytes.TrimSpace(data)) {
+	case "true", "1":
 		*b = true
-		return nil
-	case bytes.Equal(data, []byte("false")), bytes.Equal(data, []byte("0")):
+	case "false", "0", "null":
 		*b = false
-		return nil
-	case bytes.Equal(data, []byte("null")):
-		*b = false
-		return nil
 	default:
-		return fmt.Errorf("flexBool: valeur booléenne inattendue %q", data)
+		return fmt.Errorf("flexBool: valeur inattendue %q", data)
 	}
+	return nil
 }
