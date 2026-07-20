@@ -1,0 +1,3 @@
+DROP TABLE IF EXISTS station_status;
+DROP TABLE IF EXISTS stations;
+DROP TABLE IF EXISTS cities;

@@ -1,38 +1,103 @@
-# Dev conteneurisé : docker compose run --rm {test|vet|build|fmt|dev}
+# Dev conteneurisé.
+#   docker compose up                       -> db + adminer + app (migrations appliquées)
+#   docker compose run --rm {test|vet|build|fmt|itest|dev}
+
+x-go-env: &go-env
+  GOFLAGS: -mod=mod
+  GOCACHE: /go/cache
+
+x-db-env: &db-env
+  DB_HOST: db
+  DB_PORT: "5432"
+  DB_USER: velodispo
+  DB_PASSWORD: velodispo
+  DB_NAME: velodispo
+  DB_SSLMODE: disable
 
 x-go-common: &go-common
-  image: golang:1.22-alpine
+  image: golang:1.25-alpine
   working_dir: /app
-  environment:
-    GOFLAGS: -mod=mod
-    GOCACHE: /go/cache
+  environment: *go-env
+  # DNS explicite : le resolver Docker par défaut de certaines machines ne résout
+  # pas les noms externes (proxy.golang.org) au téléchargement des modules.
+  dns:
+    - 8.8.8.8
+    - 1.1.1.1
   volumes:
     - .:/app
     - go-mod-cache:/go/pkg/mod
     - go-build-cache:/go/cache
 
 services:
+  db:
+    image: timescale/timescaledb:2.17.2-pg16
+    environment:
+      POSTGRES_USER: velodispo
+      POSTGRES_PASSWORD: velodispo
+      POSTGRES_DB: velodispo
+    ports:
+      - "5432:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U velodispo -d velodispo"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  adminer:
+    image: adminer:4
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+
+  app:
+    <<: *go-common
+    command: ["go", "run", "./cmd/velodispo"]
+    environment:
+      <<: [*go-env, *db-env]
+    depends_on:
+      db:
+        condition: service_healthy
+
   test:
     <<: *go-common
+    profiles: ["tools"]
     command: ["go", "test", "./..."]
+
+  itest:
+    <<: *go-common
+    profiles: ["tools"]
+    command: ["go", "test", "-tags=integration", "./..."]
+    environment:
+      <<: [*go-env, *db-env]
+    depends_on:
+      db:
+        condition: service_healthy
 
   vet:
     <<: *go-common
+    profiles: ["tools"]
     command: ["go", "vet", "./..."]
 
   build:
     <<: *go-common
+    profiles: ["tools"]
     command: ["go", "build", "./..."]
 
   fmt:
     <<: *go-common
+    profiles: ["tools"]
     entrypoint: ["sh", "-c"]
     command: ['test -z "$(gofmt -l .)" || { echo "Fichiers non formatés :"; gofmt -l .; exit 1; }']
 
   dev:
     <<: *go-common
+    profiles: ["tools"]
     command: ["sh"]
 
 volumes:
   go-mod-cache:
   go-build-cache:
+  db-data:
