@@ -269,6 +269,29 @@ func TestFlexBool(t *testing.T) {
 	}
 }
 
+func TestFlexString(t *testing.T) {
+	tests := []struct {
+		name string
+		in   string
+		want string
+	}{
+		{"chaîne (2.x)", `"213688169"`, "213688169"},
+		{"nombre (Vélib' 1.0)", `213688169`, "213688169"},
+		{"null", `null`, ""},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			var s flexString
+			if err := json.Unmarshal([]byte(tc.in), &s); err != nil {
+				t.Fatalf("erreur inattendue: %v", err)
+			}
+			if string(s) != tc.want {
+				t.Errorf("flexString(%q) = %q, attendu %q", tc.in, string(s), tc.want)
+			}
+		})
+	}
+}
+
 func TestChooseLang(t *testing.T) {
 	set := map[string]feedSet{"en": {}, "fr": {}}
 	tests := []struct {

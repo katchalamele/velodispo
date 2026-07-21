@@ -58,6 +58,8 @@ services:
     environment:
       <<: [*go-env, *db-env]
       HTTP_ADDR: ":8081"
+      POLL_INTERVAL: "60s"
+      SOURCES: "nantes,paris"
     ports:
       - "8081:8081"
     depends_on:

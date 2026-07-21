@@ -16,6 +16,8 @@ import (
 
 	"github.com/katchalamele/velodispo/internal/api"
 	"github.com/katchalamele/velodispo/internal/config"
+	"github.com/katchalamele/velodispo/internal/ingest"
+	"github.com/katchalamele/velodispo/internal/source/registry"
 	"github.com/katchalamele/velodispo/internal/store"
 )
 
@@ -45,6 +47,15 @@ func main() {
 		log.Fatalf("connexion base: %v", err)
 	}
 	defer st.Close()
+
+	httpClient := &http.Client{Timeout: cfg.Poll.HTTPTimeout}
+	sources, err := registry.Build(cfg.Poll.Sources, httpClient)
+	if err != nil {
+		log.Fatalf("sources: %v", err)
+	}
+	poller := ingest.New(sources, st, cfg.Poll.Interval, cfg.Poll.HTTPTimeout, cfg.Poll.MaxConcurrency)
+	go poller.Run(ctx)
+	log.Printf("poller démarré (%s, sources: %v)", cfg.Poll.Interval, cfg.Poll.Sources)
 
 	e := api.New(st)
 	go func() {

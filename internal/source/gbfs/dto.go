@@ -27,12 +27,12 @@ type stationInformationData struct {
 }
 
 type stationInformation struct {
-	StationID string  `json:"station_id"`
-	Name      string  `json:"name"`
-	Lat       float64 `json:"lat"`
-	Lon       float64 `json:"lon"`
-	Address   string  `json:"address"`
-	Capacity  int     `json:"capacity"`
+	StationID flexString `json:"station_id"`
+	Name      string     `json:"name"`
+	Lat       float64    `json:"lat"`
+	Lon       float64    `json:"lon"`
+	Address   string     `json:"address"`
+	Capacity  int        `json:"capacity"`
 }
 
 type stationStatusData struct {
@@ -40,15 +40,37 @@ type stationStatusData struct {
 }
 
 type stationStatus struct {
-	StationID         string   `json:"station_id"`
-	NumBikesAvailable int      `json:"num_bikes_available"`
-	NumBikesDisabled  int      `json:"num_bikes_disabled"`
-	NumDocksAvailable int      `json:"num_docks_available"`
-	NumDocksDisabled  int      `json:"num_docks_disabled"`
-	IsInstalled       flexBool `json:"is_installed"`
-	IsRenting         flexBool `json:"is_renting"`
-	IsReturning       flexBool `json:"is_returning"`
-	LastReported      int64    `json:"last_reported"`
+	StationID         flexString `json:"station_id"`
+	NumBikesAvailable int        `json:"num_bikes_available"`
+	NumBikesDisabled  int        `json:"num_bikes_disabled"`
+	NumDocksAvailable int        `json:"num_docks_available"`
+	NumDocksDisabled  int        `json:"num_docks_disabled"`
+	IsInstalled       flexBool   `json:"is_installed"`
+	IsRenting         flexBool   `json:"is_renting"`
+	IsReturning       flexBool   `json:"is_returning"`
+	LastReported      int64      `json:"last_reported"`
+}
+
+// flexString tolère un station_id fourni en chaîne (GBFS 2.x) ou en nombre
+// (certains flux GBFS 1.0 comme Vélib').
+type flexString string
+
+func (s *flexString) UnmarshalJSON(data []byte) error {
+	data = bytes.TrimSpace(data)
+	if bytes.Equal(data, []byte("null")) {
+		*s = ""
+		return nil
+	}
+	if len(data) > 0 && data[0] == '"' {
+		var str string
+		if err := json.Unmarshal(data, &str); err != nil {
+			return err
+		}
+		*s = flexString(str)
+		return nil
+	}
+	*s = flexString(data)
+	return nil
 }
 
 // flexBool tolère true/false (GBFS 2.x) et 0/1 (GBFS 1.0).

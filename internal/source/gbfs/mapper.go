@@ -8,7 +8,7 @@ import (
 
 func toStation(city string, s stationInformation) domain.Station {
 	return domain.Station{
-		ID:       s.StationID,
+		ID:       string(s.StationID),
 		City:     city,
 		Name:     s.Name,
 		Lat:      s.Lat,
@@ -24,7 +24,7 @@ func toStatus(s stationStatus) domain.Status {
 		reported = time.Unix(s.LastReported, 0).UTC()
 	}
 	return domain.Status{
-		StationID:      s.StationID,
+		StationID:      string(s.StationID),
 		BikesAvailable: s.NumBikesAvailable,
 		DocksAvailable: s.NumDocksAvailable,
 		BikesDisabled:  s.NumBikesDisabled,

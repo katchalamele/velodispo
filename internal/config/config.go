@@ -2,13 +2,22 @@ package config
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/kelseyhightower/envconfig"
 )
 
 type Config struct {
 	DB       DBConfig
+	Poll     PollConfig
 	HTTPAddr string `envconfig:"HTTP_ADDR" default:":8081"`
+}
+
+type PollConfig struct {
+	Interval       time.Duration `envconfig:"POLL_INTERVAL" default:"60s"`
+	Sources        []string      `envconfig:"SOURCES" default:"nantes,paris"`
+	HTTPTimeout    time.Duration `envconfig:"HTTP_TIMEOUT" default:"15s"`
+	MaxConcurrency int           `envconfig:"POLL_MAX_CONCURRENCY" default:"4"`
 }
 
 type DBConfig struct {
