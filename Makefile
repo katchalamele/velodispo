@@ -1,4 +1,4 @@
-.PHONY: up down test itest migrate build vet fmt tidy
+.PHONY: up down test itest migrate build vet fmt tidy swag
 
 up:
 	docker compose up
@@ -27,3 +27,6 @@ fmt:
 
 tidy:
 	docker compose run --rm dev go mod tidy
+
+swag:
+	docker compose run --rm dev go run github.com/swaggo/swag/cmd/swag init -g cmd/velodispo/main.go -o internal/api/docs

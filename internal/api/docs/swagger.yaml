@@ -1,0 +1,190 @@
+basePath: /
+definitions:
+  api.HistoryResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/api.StatusResponse'
+        type: array
+      from:
+        type: string
+      station_id:
+        type: integer
+      to:
+        type: string
+    type: object
+  api.ListResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/api.StationResponse'
+        type: array
+      pagination:
+        $ref: '#/definitions/api.Pagination'
+    type: object
+  api.Pagination:
+    properties:
+      limit:
+        type: integer
+      offset:
+        type: integer
+      total:
+        type: integer
+    type: object
+  api.StationResponse:
+    properties:
+      address:
+        type: string
+      capacity:
+        type: integer
+      city:
+        type: string
+      id:
+        type: integer
+      lat:
+        type: number
+      lon:
+        type: number
+      name:
+        type: string
+      station_id:
+        type: string
+      status:
+        $ref: '#/definitions/api.StatusResponse'
+    type: object
+  api.StatusResponse:
+    properties:
+      bikes_available:
+        type: integer
+      bikes_disabled:
+        type: integer
+      docks_available:
+        type: integer
+      docks_disabled:
+        type: integer
+      is_installed:
+        type: boolean
+      is_renting:
+        type: boolean
+      is_returning:
+        type: boolean
+      last_reported:
+        type: string
+      time:
+        type: string
+    type: object
+  api.errorResponse:
+    properties:
+      error:
+        type: string
+    type: object
+info:
+  contact: {}
+  description: Disponibilité temps réel de vélos en libre-service, multi-villes.
+  title: Vélo Aggregator API
+  version: "1.0"
+paths:
+  /stations:
+    get:
+      description: Stations paginées, filtrables par ville, avec la dernière disponibilité
+        connue.
+      parameters:
+      - description: Filtre par nom de ville
+        in: query
+        name: city
+        type: string
+      - description: Taille de page (défaut 50, max 200)
+        in: query
+        name: limit
+        type: integer
+      - description: Décalage (défaut 0)
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.ListResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.errorResponse'
+      summary: Liste les stations
+      tags:
+      - stations
+  /stations/{id}:
+    get:
+      parameters:
+      - description: Identifiant interne de la station
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.StationResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.errorResponse'
+      summary: Détail d'une station
+      tags:
+      - stations
+  /stations/{id}/history:
+    get:
+      parameters:
+      - description: Identifiant interne de la station
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Début (RFC3339, défaut il y a 24h)
+        in: query
+        name: from
+        type: string
+      - description: Fin (RFC3339, défaut maintenant)
+        in: query
+        name: to
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.HistoryResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.errorResponse'
+      summary: Historique de disponibilité d'une station
+      tags:
+      - stations
+swagger: "2.0"

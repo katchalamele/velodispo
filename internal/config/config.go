@@ -7,7 +7,8 @@ import (
 )
 
 type Config struct {
-	DB DBConfig
+	DB       DBConfig
+	HTTPAddr string `envconfig:"HTTP_ADDR" default:":8081"`
 }
 
 type DBConfig struct {

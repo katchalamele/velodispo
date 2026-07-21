@@ -57,6 +57,9 @@ services:
     command: ["go", "run", "./cmd/velodispo"]
     environment:
       <<: [*go-env, *db-env]
+      HTTP_ADDR: ":8081"
+    ports:
+      - "8081:8081"
     depends_on:
       db:
         condition: service_healthy

@@ -1,12 +1,20 @@
+// @title       Vélo Aggregator API
+// @version     1.0
+// @description Disponibilité temps réel de vélos en libre-service, multi-villes.
+// @BasePath    /
 package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"log"
+	"net/http"
 	"os/signal"
 	"syscall"
+	"time"
 
+	"github.com/katchalamele/velodispo/internal/api"
 	"github.com/katchalamele/velodispo/internal/config"
 	"github.com/katchalamele/velodispo/internal/store"
 )
@@ -38,7 +46,20 @@ func main() {
 	}
 	defer st.Close()
 
-	log.Println("prêt")
+	e := api.New(st)
+	go func() {
+		if err := e.Start(cfg.HTTPAddr); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			log.Fatalf("serveur http: %v", err)
+		}
+	}()
+	log.Printf("API à l'écoute sur %s", cfg.HTTPAddr)
+
 	<-ctx.Done()
-	log.Println("arrêt")
+	log.Println("arrêt en cours")
+
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if err := e.Shutdown(shutdownCtx); err != nil {
+		log.Printf("arrêt serveur: %v", err)
+	}
 }
