@@ -3,34 +3,68 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Vélo Aggregator</title>
+  <title>Velodispo</title>
   <link rel="stylesheet" href="/vendor/leaflet/leaflet.css">
   <link rel="stylesheet" href="/style.css">
 </head>
 <body>
-  <div id="app">
-    <div id="map"></div>
+  <header id="topbar">
+    <div class="brand">
+      <span class="logo">🚲</span>
+      <div class="brand-text">
+        <h1>Velodispo</h1>
+        <p>Disponibilité en temps réel des vélos en libre-service. Explorez la carte,
+           cliquez une station pour voir sa dispo, son historique et sa prédiction.</p>
+      </div>
+    </div>
+  </header>
+
+  <main id="app">
+    <section id="map-wrap">
+      <div id="map"></div>
+      <div id="map-legend" class="legend-box">
+        <span><i class="dot g"></i> bien fournie</span>
+        <span><i class="dot o"></i> presque vide</span>
+        <span><i class="dot r"></i> vide</span>
+        <span><i class="dot x"></i> inconnue</span>
+      </div>
+    </section>
+
     <aside id="panel">
-      <header>
-        <h1>Vélo Aggregator</h1>
-        <p class="hint">Cliquez une station sur la carte.</p>
-      </header>
+      <div id="empty" class="empty">
+        <span class="empty-icon">📍</span>
+        <p>Sélectionnez une station sur la carte pour afficher son détail.</p>
+      </div>
+
       <section id="detail" hidden>
-        <h2 id="d-name"></h2>
-        <p id="d-city" class="muted"></p>
-        <div id="d-live" class="live"></div>
-        <div class="chart-head">
-          <span class="chart-title">Aujourd'hui : réel vs typique</span>
-          <div class="toggle">
-            <button data-metric="bikes" class="active">Vélos</button>
-            <button data-metric="docks">Bornes</button>
-          </div>
+        <div class="detail-head">
+          <h2 id="d-name"></h2>
+          <span id="d-city" class="chip"></span>
         </div>
-        <svg id="chart" viewBox="0 0 640 260" preserveAspectRatio="xMidYMid meet"></svg>
-        <p id="d-samples" class="muted"></p>
+
+        <div id="d-live" class="live"></div>
+
+        <div class="card chart-card">
+          <div class="chart-head">
+            <div>
+              <h3>Aujourd'hui</h3>
+              <div class="legend">
+                <span><i class="line real"></i> réel</span>
+                <span><i class="line pred"></i> typique (prédiction)</span>
+              </div>
+            </div>
+            <div class="toggle">
+              <button data-metric="bikes" class="active">Vélos</button>
+              <button data-metric="docks">Bornes</button>
+            </div>
+          </div>
+          <svg id="chart" viewBox="0 0 760 380" preserveAspectRatio="xMidYMid meet"></svg>
+          <p id="d-samples" class="muted"></p>
+        </div>
       </section>
     </aside>
-  </div>
+  </main>
+
   <script src="/vendor/leaflet/leaflet.js"></script>
   <script src="/app.js"></script>
 </body>

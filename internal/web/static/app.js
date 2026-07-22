@@ -3,36 +3,34 @@ const parisFmt = new Intl.DateTimeFormat("fr-FR", {
   timeZone: "Europe/Paris", hour: "2-digit", minute: "2-digit", hour12: false,
 });
 
+const COLORS = { green: "#16a34a", orange: "#f97316", red: "#dc2626", gray: "#94a3b8" };
+
 let currentMetric = "bikes";
 let currentData = null;
 
-const map = L.map("map", { preferCanvas: true }).setView([47.0, 0.5], 6);
+const map = L.map("map", { preferCanvas: true, zoomControl: true }).setView([47.5, 1.5], 6);
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
   maxZoom: 19,
   attribution: "&copy; OpenStreetMap",
 }).addTo(map);
 
 function color(bikes, capacity) {
-  if (bikes === null || bikes === undefined) return "#9ca3af";
-  const ratio = capacity > 0 ? bikes / capacity : (bikes > 0 ? 1 : 0);
-  if (bikes === 0) return "#dc2626";
-  if (ratio < 0.2) return "#f97316";
-  return "#16a34a";
+  if (bikes === null || bikes === undefined) return COLORS.gray;
+  if (bikes === 0) return COLORS.red;
+  const ratio = capacity > 0 ? bikes / capacity : 1;
+  if (ratio < 0.2) return COLORS.orange;
+  return COLORS.green;
 }
 
 async function loadMap() {
-  const res = await fetch("/map");
-  const stations = await res.json();
+  const stations = await fetch("/map").then((r) => r.json());
   const bounds = [];
   for (const s of stations) {
+    const c = color(s.bikes_available, s.capacity);
     const m = L.circleMarker([s.lat, s.lon], {
-      radius: 5,
-      color: color(s.bikes_available, s.capacity),
-      fillColor: color(s.bikes_available, s.capacity),
-      fillOpacity: 0.85,
-      weight: 1,
+      radius: 5, color: c, fillColor: c, fillOpacity: 0.85, weight: 1,
     }).addTo(map);
-    m.bindTooltip(`${s.name} (${s.city})`);
+    m.bindTooltip(`${s.name} — ${s.city}`);
     m.on("click", () => selectStation(s.id));
     bounds.push([s.lat, s.lon]);
   }
@@ -61,6 +59,7 @@ async function selectStation(id) {
 
 function renderDetail() {
   const { station, prediction } = currentData;
+  document.getElementById("empty").hidden = true;
   document.getElementById("detail").hidden = false;
   document.getElementById("d-name").textContent = station.name;
   document.getElementById("d-city").textContent = station.city;
@@ -69,15 +68,15 @@ function renderDetail() {
   const live = document.getElementById("d-live");
   if (st) {
     live.innerHTML = `
-      <div class="stat"><div class="n">${st.bikes_available}</div><div class="l">vélos dispo</div></div>
-      <div class="stat"><div class="n">${st.docks_available}</div><div class="l">bornes libres</div></div>`;
+      <div class="stat"><div class="top">🚲 vélos disponibles</div><div class="n">${st.bikes_available}</div></div>
+      <div class="stat"><div class="top">🅿️ bornes libres</div><div class="n">${st.docks_available}</div></div>`;
   } else {
-    live.innerHTML = `<div class="stat"><div class="l">Aucune dispo relevée pour l'instant.</div></div>`;
+    live.innerHTML = `<div class="stat"><div class="top">Aucune disponibilité relevée pour l'instant.</div></div>`;
   }
 
   const totalSamples = prediction.profile.reduce((a, s) => a + s.samples, 0);
   document.getElementById("d-samples").textContent =
-    `Prédiction : moyenne par tranche de 30 min (${totalSamples} relevés ce jour de semaine).`;
+    `Prédiction : moyenne par tranche de 30 min — ${totalSamples} relevé(s) pour ce jour de semaine.`;
 
   drawChart();
 }
@@ -87,11 +86,13 @@ function drawChart() {
   const svg = document.getElementById("chart");
   while (svg.firstChild) svg.removeChild(svg.firstChild);
 
-  const W = 640, H = 260, padL = 34, padR = 12, padT = 12, padB = 24;
+  const W = 760, H = 380, padL = 44, padR = 18, padT = 18, padB = 34;
   const key = currentMetric === "bikes" ? "bikes_available" : "docks_available";
   const predKey = currentMetric === "bikes" ? "avg_bikes" : "avg_docks";
 
-  const predPts = prediction.profile.map((s) => ({ x: s.minutes, y: s[predKey] }));
+  const predPts = prediction.profile
+    .filter((s) => s.samples > 0)
+    .map((s) => ({ x: s.minutes, y: s[predKey] }));
   const realPts = history.data
     .map((d) => ({ x: parisMinutes(d.time), y: d[key] }))
     .sort((a, b) => a.x - b.x);
@@ -99,49 +100,65 @@ function drawChart() {
   let maxY = 1;
   for (const p of predPts) maxY = Math.max(maxY, p.y);
   for (const p of realPts) maxY = Math.max(maxY, p.y);
-  maxY = Math.ceil(maxY * 1.1);
+  maxY = Math.ceil(maxY * 1.15);
 
   const xScale = (m) => padL + (m / 1440) * (W - padL - padR);
   const yScale = (v) => H - padB - (v / maxY) * (H - padT - padB);
 
-  const line = (cls) => { const el = document.createElementNS(SVGNS, "line"); el.setAttribute("class", cls); return el; };
-  const text = (x, y, s, anchor) => {
-    const el = document.createElementNS(SVGNS, "text");
-    el.setAttribute("x", x); el.setAttribute("y", y); el.setAttribute("class", "tick");
-    if (anchor) el.setAttribute("text-anchor", anchor);
-    el.textContent = s; return el;
+  const el = (name, attrs) => {
+    const e = document.createElementNS(SVGNS, name);
+    for (const k in attrs) e.setAttribute(k, attrs[k]);
+    return e;
+  };
+  const text = (x, y, s, cls, anchor) => {
+    const t = el("text", { x, y, class: cls || "tick" });
+    if (anchor) t.setAttribute("text-anchor", anchor);
+    t.textContent = s;
+    return t;
   };
 
-  const axisX = line("axis");
-  axisX.setAttribute("x1", padL); axisX.setAttribute("y1", H - padB);
-  axisX.setAttribute("x2", W - padR); axisX.setAttribute("y2", H - padB);
-  svg.appendChild(axisX);
-
-  for (let h = 0; h <= 24; h += 6) {
-    const x = xScale(h * 60);
-    const g = line("grid");
-    g.setAttribute("x1", x); g.setAttribute("y1", padT);
-    g.setAttribute("x2", x); g.setAttribute("y2", H - padB);
-    svg.appendChild(g);
-    svg.appendChild(text(x, H - padB + 14, `${h}h`, "middle"));
+  // grille horizontale + graduations Y
+  for (const frac of [0, 0.5, 1]) {
+    const v = Math.round(maxY * frac);
+    const y = yScale(v);
+    svg.appendChild(el("line", { class: "grid", x1: padL, y1: y, x2: W - padR, y2: y }));
+    svg.appendChild(text(padL - 8, y + 4, String(v), "tick", "end"));
   }
-  svg.appendChild(text(padL - 6, yScale(maxY) + 4, String(maxY), "end"));
-  svg.appendChild(text(padL - 6, yScale(0) + 4, "0", "end"));
 
-  const polyline = (pts, cls) => {
-    if (!pts.length) return;
-    const el = document.createElementNS(SVGNS, "polyline");
-    el.setAttribute("class", cls);
-    el.setAttribute("points", pts.map((p) => `${xScale(p.x)},${yScale(p.y)}`).join(" "));
-    svg.appendChild(el);
-  };
-  polyline(predPts.filter((p) => p.y > 0 || prediction.profile[p.x / 30].samples > 0), "serie-pred");
-  polyline(realPts, "serie-real");
+  // axe X + graduations toutes les 3h
+  svg.appendChild(el("line", { class: "axis", x1: padL, y1: H - padB, x2: W - padR, y2: H - padB }));
+  for (let h = 0; h <= 24; h += 3) {
+    const x = xScale(h * 60);
+    svg.appendChild(text(x, H - padB + 18, `${h}h`, "tick", "middle"));
+  }
 
-  svg.appendChild(text(padL, padT + 8, "— réel", "start")).setAttribute("fill", "var(--real)");
-  const legPred = text(padL + 60, padT + 8, "-- typique", "start");
-  legPred.setAttribute("fill", "var(--pred)");
-  svg.appendChild(legPred);
+  // aire + ligne de prédiction
+  if (predPts.length) {
+    const base = yScale(0);
+    const area = predPts.map((p) => `${xScale(p.x)},${yScale(p.y)}`).join(" ");
+    svg.appendChild(el("polygon", {
+      class: "serie-pred-area",
+      points: `${xScale(predPts[0].x)},${base} ${area} ${xScale(predPts[predPts.length - 1].x)},${base}`,
+    }));
+    svg.appendChild(el("polyline", { class: "serie-pred", points: area }));
+  }
+
+  // repère "maintenant"
+  const nowM = parisMinutes(new Date().toISOString());
+  const nx = xScale(nowM);
+  svg.appendChild(el("line", { class: "now-line", x1: nx, y1: padT, x2: nx, y2: H - padB }));
+  svg.appendChild(text(Math.min(nx + 4, W - padR - 60), padT + 10, "maintenant", "now-label", "start"));
+
+  // ligne réelle + points
+  if (realPts.length) {
+    svg.appendChild(el("polyline", {
+      class: "serie-real",
+      points: realPts.map((p) => `${xScale(p.x)},${yScale(p.y)}`).join(" "),
+    }));
+    for (const p of realPts) {
+      svg.appendChild(el("circle", { class: "serie-real-dot", cx: xScale(p.x), cy: yScale(p.y), r: 3 }));
+    }
+  }
 }
 
 document.querySelectorAll(".toggle button").forEach((btn) => {
