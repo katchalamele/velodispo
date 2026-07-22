@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Vélo Aggregator</title>
+  <link rel="stylesheet" href="/vendor/leaflet/leaflet.css">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div id="app">
+    <div id="map"></div>
+    <aside id="panel">
+      <header>
+        <h1>Vélo Aggregator</h1>
+        <p class="hint">Cliquez une station sur la carte.</p>
+      </header>
+      <section id="detail" hidden>
+        <h2 id="d-name"></h2>
+        <p id="d-city" class="muted"></p>
+        <div id="d-live" class="live"></div>
+        <div class="chart-head">
+          <span class="chart-title">Aujourd'hui : réel vs typique</span>
+          <div class="toggle">
+            <button data-metric="bikes" class="active">Vélos</button>
+            <button data-metric="docks">Bornes</button>
+          </div>
+        </div>
+        <svg id="chart" viewBox="0 0 640 260" preserveAspectRatio="xMidYMid meet"></svg>
+        <p id="d-samples" class="muted"></p>
+      </section>
+    </aside>
+  </div>
+  <script src="/vendor/leaflet/leaflet.js"></script>
+  <script src="/app.js"></script>
+</body>
+</html>

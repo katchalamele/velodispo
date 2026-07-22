@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	_ "github.com/katchalamele/velodispo/internal/api/docs"
+	"github.com/katchalamele/velodispo/internal/web"
 	echoSwagger "github.com/swaggo/echo-swagger"
 
 	"github.com/labstack/echo/v4"
@@ -27,7 +28,11 @@ func New(reader StationReader) *echo.Echo {
 	e.GET("/stations", h.ListStations)
 	e.GET("/stations/:id", h.GetStation)
 	e.GET("/stations/:id/history", h.GetStationHistory)
+	e.GET("/stations/:id/prediction", h.GetPrediction)
+	e.GET("/map", h.GetMap)
 	e.GET("/swagger/*", echoSwagger.WrapHandler)
+
+	e.StaticFS("/", echo.MustSubFS(web.Assets, "static"))
 
 	return e
 }

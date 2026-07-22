@@ -20,6 +20,18 @@ type fakeReader struct {
 	history    []store.Snapshot
 	lastFrom   time.Time
 	lastTo     time.Time
+	profile    []store.SlotAvg
+	lastIsodow int
+	mapViews   []store.StationView
+}
+
+func (f *fakeReader) PredictionProfile(_ context.Context, _ int64, isodow int) ([]store.SlotAvg, error) {
+	f.lastIsodow = isodow
+	return f.profile, nil
+}
+
+func (f *fakeReader) MapStations(_ context.Context) ([]store.StationView, error) {
+	return f.mapViews, nil
 }
 
 func (f *fakeReader) ListStations(_ context.Context, flt store.StationFilter) ([]store.StationView, int, error) {
@@ -151,5 +163,69 @@ func TestHistoryNotFound(t *testing.T) {
 	rec := do(t, f, http.MethodGet, "/stations/999/history")
 	if rec.Code != http.StatusNotFound {
 		t.Fatalf("code = %d, attendu 404", rec.Code)
+	}
+}
+
+func TestPredictionDenseProfile(t *testing.T) {
+	f := &fakeReader{profile: []store.SlotAvg{{Slot: 10, AvgBikes: 12.4, AvgDocks: 7.6, Samples: 3}}}
+	rec := do(t, f, http.MethodGet, "/stations/1/prediction")
+	if rec.Code != http.StatusOK {
+		t.Fatalf("code = %d, attendu 200", rec.Code)
+	}
+	var resp PredictionResponse
+	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("json: %v", err)
+	}
+	if len(resp.Profile) != 48 {
+		t.Fatalf("profil = %d slots, attendu 48 (dense)", len(resp.Profile))
+	}
+	if resp.Profile[10].Samples != 3 || resp.Profile[10].AvgBikes != 12.4 {
+		t.Errorf("slot 10 non rempli: %+v", resp.Profile[10])
+	}
+	if resp.Profile[0].Samples != 0 {
+		t.Errorf("slot vide devrait avoir 0 samples: %+v", resp.Profile[0])
+	}
+	if resp.Weekday < 1 || resp.Weekday > 7 {
+		t.Errorf("weekday hors bornes: %d", resp.Weekday)
+	}
+}
+
+func TestPredictionBadAt(t *testing.T) {
+	rec := do(t, &fakeReader{}, http.MethodGet, "/stations/1/prediction?at=notadate")
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("code = %d, attendu 400", rec.Code)
+	}
+}
+
+func TestPredictionNotFound(t *testing.T) {
+	f := &fakeReader{getErr: store.ErrNotFound}
+	rec := do(t, f, http.MethodGet, "/stations/999/prediction")
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("code = %d, attendu 404", rec.Code)
+	}
+}
+
+func TestMap(t *testing.T) {
+	f := &fakeReader{mapViews: []store.StationView{
+		{Station: store.Station{ID: 1, Name: "A", Lat: 47.2, Lon: -1.5, Capacity: 20}, CityName: "Nantes",
+			Status: &store.Snapshot{BikesAvailable: 5, DocksAvailable: 15}},
+		{Station: store.Station{ID: 2, Name: "B", Lat: 48.8, Lon: 2.3}, CityName: "Paris"},
+	}}
+	rec := do(t, f, http.MethodGet, "/map")
+	if rec.Code != http.StatusOK {
+		t.Fatalf("code = %d, attendu 200", rec.Code)
+	}
+	var resp []MapStationResponse
+	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("json: %v", err)
+	}
+	if len(resp) != 2 {
+		t.Fatalf("stations = %d, attendu 2", len(resp))
+	}
+	if resp[0].BikesAvailable == nil || *resp[0].BikesAvailable != 5 {
+		t.Errorf("station 1 bikes attendu 5: %+v", resp[0].BikesAvailable)
+	}
+	if resp[1].BikesAvailable != nil {
+		t.Errorf("station 2 sans statut -> bikes nil, got %+v", resp[1].BikesAvailable)
 	}
 }

@@ -15,6 +15,35 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/map": {
+            "get": {
+                "description": "Position et dernière disponibilité de toutes les stations (sans pagination).",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "stations"
+                ],
+                "summary": "Toutes les stations pour la carte",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/api.MapStationResponse"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.errorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/stations": {
             "get": {
                 "description": "Stations paginées, filtrables par ville, avec la dernière disponibilité connue.",
@@ -170,6 +199,59 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/stations/{id}/prediction": {
+            "get": {
+                "description": "Moyenne par (jour de semaine, tranche de 30 min) en heure locale Europe/Paris.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "stations"
+                ],
+                "summary": "Prédiction de disponibilité d'une station",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Identifiant interne de la station",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Instant cible (RFC3339, défaut maintenant)",
+                        "name": "at",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/api.PredictionResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.errorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/api.errorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.errorResponse"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -207,6 +289,35 @@ const docTemplate = `{
                 }
             }
         },
+        "api.MapStationResponse": {
+            "type": "object",
+            "properties": {
+                "bikes_available": {
+                    "type": "integer"
+                },
+                "capacity": {
+                    "type": "integer"
+                },
+                "city": {
+                    "type": "string"
+                },
+                "docks_available": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "lat": {
+                    "type": "number"
+                },
+                "lon": {
+                    "type": "number"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
         "api.Pagination": {
             "type": "object",
             "properties": {
@@ -217,6 +328,66 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "api.PredictedPoint": {
+            "type": "object",
+            "properties": {
+                "bikes_available": {
+                    "type": "integer"
+                },
+                "docks_available": {
+                    "type": "integer"
+                },
+                "samples": {
+                    "type": "integer"
+                }
+            }
+        },
+        "api.PredictionResponse": {
+            "type": "object",
+            "properties": {
+                "at": {
+                    "type": "string"
+                },
+                "predicted": {
+                    "$ref": "#/definitions/api.PredictedPoint"
+                },
+                "profile": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/api.SlotResponse"
+                    }
+                },
+                "slot": {
+                    "type": "integer"
+                },
+                "station_id": {
+                    "type": "integer"
+                },
+                "weekday": {
+                    "type": "integer"
+                }
+            }
+        },
+        "api.SlotResponse": {
+            "type": "object",
+            "properties": {
+                "avg_bikes": {
+                    "type": "number"
+                },
+                "avg_docks": {
+                    "type": "number"
+                },
+                "minutes": {
+                    "type": "integer"
+                },
+                "samples": {
+                    "type": "integer"
+                },
+                "slot": {
                     "type": "integer"
                 }
             }

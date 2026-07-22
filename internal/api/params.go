@@ -43,6 +43,18 @@ func parseID(c echo.Context) (int64, error) {
 	return id, nil
 }
 
+func parseAt(c echo.Context, now time.Time) (time.Time, error) {
+	raw := c.QueryParam("at")
+	if raw == "" {
+		return now, nil
+	}
+	at, err := time.Parse(time.RFC3339, raw)
+	if err != nil {
+		return time.Time{}, echo.NewHTTPError(http.StatusBadRequest, "at invalide (RFC3339 attendu)")
+	}
+	return at, nil
+}
+
 func parseInterval(c echo.Context, now time.Time) (from, to time.Time, err error) {
 	to = now.UTC()
 	from = to.Add(-defaultHistory)

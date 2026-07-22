@@ -22,6 +22,25 @@ definitions:
       pagination:
         $ref: '#/definitions/api.Pagination'
     type: object
+  api.MapStationResponse:
+    properties:
+      bikes_available:
+        type: integer
+      capacity:
+        type: integer
+      city:
+        type: string
+      docks_available:
+        type: integer
+      id:
+        type: integer
+      lat:
+        type: number
+      lon:
+        type: number
+      name:
+        type: string
+    type: object
   api.Pagination:
     properties:
       limit:
@@ -29,6 +48,45 @@ definitions:
       offset:
         type: integer
       total:
+        type: integer
+    type: object
+  api.PredictedPoint:
+    properties:
+      bikes_available:
+        type: integer
+      docks_available:
+        type: integer
+      samples:
+        type: integer
+    type: object
+  api.PredictionResponse:
+    properties:
+      at:
+        type: string
+      predicted:
+        $ref: '#/definitions/api.PredictedPoint'
+      profile:
+        items:
+          $ref: '#/definitions/api.SlotResponse'
+        type: array
+      slot:
+        type: integer
+      station_id:
+        type: integer
+      weekday:
+        type: integer
+    type: object
+  api.SlotResponse:
+    properties:
+      avg_bikes:
+        type: number
+      avg_docks:
+        type: number
+      minutes:
+        type: integer
+      samples:
+        type: integer
+      slot:
         type: integer
     type: object
   api.StationResponse:
@@ -84,6 +142,26 @@ info:
   title: Vélo Aggregator API
   version: "1.0"
 paths:
+  /map:
+    get:
+      description: Position et dernière disponibilité de toutes les stations (sans
+        pagination).
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/api.MapStationResponse'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.errorResponse'
+      summary: Toutes les stations pour la carte
+      tags:
+      - stations
   /stations:
     get:
       description: Stations paginées, filtrables par ville, avec la dernière disponibilité
@@ -185,6 +263,42 @@ paths:
           schema:
             $ref: '#/definitions/api.errorResponse'
       summary: Historique de disponibilité d'une station
+      tags:
+      - stations
+  /stations/{id}/prediction:
+    get:
+      description: Moyenne par (jour de semaine, tranche de 30 min) en heure locale
+        Europe/Paris.
+      parameters:
+      - description: Identifiant interne de la station
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Instant cible (RFC3339, défaut maintenant)
+        in: query
+        name: at
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.PredictionResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.errorResponse'
+      summary: Prédiction de disponibilité d'une station
       tags:
       - stations
 swagger: "2.0"

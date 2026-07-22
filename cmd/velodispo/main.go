@@ -14,6 +14,8 @@ import (
 	"syscall"
 	"time"
 
+	_ "time/tzdata"
+
 	"github.com/katchalamele/velodispo/internal/api"
 	"github.com/katchalamele/velodispo/internal/config"
 	"github.com/katchalamele/velodispo/internal/ingest"

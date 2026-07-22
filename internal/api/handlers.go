@@ -12,10 +12,15 @@ import (
 type Handler struct {
 	reader StationReader
 	now    func() time.Time
+	loc    *time.Location
 }
 
 func NewHandler(reader StationReader) *Handler {
-	return &Handler{reader: reader, now: time.Now}
+	loc, err := time.LoadLocation("Europe/Paris")
+	if err != nil {
+		loc = time.UTC
+	}
+	return &Handler{reader: reader, now: time.Now, loc: loc}
 }
 
 // ListStations godoc
@@ -127,4 +132,68 @@ func (h *Handler) GetStationHistory(c echo.Context) error {
 		To:        to,
 		Data:      data,
 	})
+}
+
+// GetPrediction godoc
+// @Summary  Prédiction de disponibilité d'une station
+// @Description Moyenne par (jour de semaine, tranche de 30 min) en heure locale Europe/Paris.
+// @Tags     stations
+// @Produce  json
+// @Param    id  path   int     true   "Identifiant interne de la station"
+// @Param    at  query  string  false  "Instant cible (RFC3339, défaut maintenant)"
+// @Success  200 {object} PredictionResponse
+// @Failure  400 {object} errorResponse
+// @Failure  404 {object} errorResponse
+// @Failure  500 {object} errorResponse
+// @Router   /stations/{id}/prediction [get]
+func (h *Handler) GetPrediction(c echo.Context) error {
+	id, err := parseID(c)
+	if err != nil {
+		return err
+	}
+	at, err := parseAt(c, h.now())
+	if err != nil {
+		return err
+	}
+
+	if _, err := h.reader.GetStation(c.Request().Context(), id); err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			return echo.NewHTTPError(http.StatusNotFound, "station introuvable")
+		}
+		return err
+	}
+
+	local := at.In(h.loc)
+	weekday := int(local.Weekday())
+	if weekday == 0 {
+		weekday = 7
+	}
+	slot := local.Hour()*2 + local.Minute()/30
+
+	profile, err := h.reader.PredictionProfile(c.Request().Context(), id, weekday)
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(http.StatusOK, predictionResponse(id, at, weekday, slot, profile))
+}
+
+// GetMap godoc
+// @Summary  Toutes les stations pour la carte
+// @Description Position et dernière disponibilité de toutes les stations (sans pagination).
+// @Tags     stations
+// @Produce  json
+// @Success  200 {array} MapStationResponse
+// @Failure  500 {object} errorResponse
+// @Router   /map [get]
+func (h *Handler) GetMap(c echo.Context) error {
+	views, err := h.reader.MapStations(c.Request().Context())
+	if err != nil {
+		return err
+	}
+	data := make([]MapStationResponse, 0, len(views))
+	for _, v := range views {
+		data = append(data, mapStationResponse(v))
+	}
+	return c.JSON(http.StatusOK, data)
 }
