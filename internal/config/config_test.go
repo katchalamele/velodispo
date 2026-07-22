@@ -1,6 +1,23 @@
 package config
 
-import "testing"
+import (
+	"os"
+	"testing"
+)
+
+func clearEnv(t *testing.T) {
+	t.Helper()
+	for _, k := range []string{
+		"DB_HOST", "DB_PORT", "DB_USER", "DB_PASSWORD", "DB_NAME", "DB_SSLMODE",
+		"HTTP_ADDR", "SOURCES", "POLL_INTERVAL", "HTTP_TIMEOUT", "POLL_MAX_CONCURRENCY",
+	} {
+		if v, ok := os.LookupEnv(k); ok {
+			key, val := k, v
+			os.Unsetenv(key)
+			t.Cleanup(func() { os.Setenv(key, val) })
+		}
+	}
+}
 
 func TestDSN(t *testing.T) {
 	db := DBConfig{
@@ -18,6 +35,7 @@ func TestDSN(t *testing.T) {
 }
 
 func TestLoadDefaults(t *testing.T) {
+	clearEnv(t)
 	cfg, err := Load()
 	if err != nil {
 		t.Fatalf("Load: %v", err)
