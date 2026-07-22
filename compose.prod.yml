@@ -1,3 +1,7 @@
+# Projet distinct du dev (compose.yml) : volumes, conteneurs et réseau isolés,
+# pour ne jamais partager le volume Postgres avec la stack de développement.
+name: velodispo-prod
+
 services:
   db:
     image: timescale/timescaledb:2.17.2-pg16
