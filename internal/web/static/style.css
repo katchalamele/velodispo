@@ -173,9 +173,27 @@ body {
   border: 1px solid var(--border);
   border-radius: 10px;
   box-shadow: var(--shadow);
-  padding: 7px 11px;
+  padding: 9px 12px;
   font: 600 13px system-ui, -apple-system, sans-serif;
 }
+.popup-title { font-weight: 700; font-size: 13px; }
+.popup-city { color: var(--muted); font-weight: 500; font-size: 11px; margin-top: 1px; }
+.popup-badges { display: flex; gap: 6px; margin-top: 7px; }
+.badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 9px 3px 3px;
+  border-radius: 999px;
+  color: #fff; font-weight: 700; font-size: 13px;
+}
+.badge .badge-ico {
+  display: inline-grid; place-items: center;
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  background: rgba(255,255,255,.28);
+  font-size: 12px;
+}
+.badge.g { background: var(--green); } .badge.o { background: var(--orange); }
+.badge.r { background: var(--red); } .badge.x { background: var(--gray); }
 .maplibregl-popup-anchor-top .maplibregl-popup-tip,
 .maplibregl-popup-anchor-top-left .maplibregl-popup-tip,
 .maplibregl-popup-anchor-top-right .maplibregl-popup-tip { border-bottom-color: var(--surface); }

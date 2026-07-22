@@ -16,11 +16,26 @@ const map = new maplibregl.Map({
 });
 map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-left");
 
-function availabilityState(bikes, capacity) {
-  if (bikes === null || bikes === undefined) return "gray";
-  if (bikes === 0) return "red";
-  const ratio = capacity > 0 ? bikes / capacity : 1;
+function availabilityState(count, capacity) {
+  if (count === null || count === undefined) return "gray";
+  if (count === 0) return "red";
+  const ratio = capacity > 0 ? count / capacity : 1;
   return ratio < 0.2 ? "orange" : "green";
+}
+
+function stateClass(count, capacity) {
+  return { green: "g", orange: "o", red: "r", gray: "x" }[availabilityState(count, capacity)];
+}
+
+function popupHTML(p) {
+  const bikes = p.bikes === "" ? "?" : p.bikes;
+  const docks = p.docks === "" ? "?" : p.docks;
+  return `<div class="popup-title">${p.name}</div>
+    <div class="popup-city">${p.city}</div>
+    <div class="popup-badges">
+      <span class="badge ${p.bikesClass}"><span class="badge-ico">🚲</span> ${bikes}</span>
+      <span class="badge ${p.docksClass}"><span class="badge-ico">🅿️</span> ${docks}</span>
+    </div>`;
 }
 
 async function loadMap() {
@@ -31,7 +46,12 @@ async function loadMap() {
     geometry: { type: "Point", coordinates: [s.lon, s.lat] },
     properties: {
       id: s.id,
-      label: `${s.name} — ${s.city}`,
+      name: s.name,
+      city: s.city,
+      bikes: s.bikes_available ?? "",
+      docks: s.docks_available ?? "",
+      bikesClass: stateClass(s.bikes_available, s.capacity),
+      docksClass: stateClass(s.docks_available, s.capacity),
       state: availabilityState(s.bikes_available, s.capacity),
     },
   }));
@@ -55,7 +75,7 @@ async function loadMap() {
   map.on("mouseenter", "stations", (e) => {
     map.getCanvas().style.cursor = "pointer";
     const f = e.features[0];
-    popup.setLngLat(f.geometry.coordinates).setText(f.properties.label).addTo(map);
+    popup.setLngLat(f.geometry.coordinates).setHTML(popupHTML(f.properties)).addTo(map);
   });
   map.on("mouseleave", "stations", () => {
     map.getCanvas().style.cursor = "";
@@ -101,15 +121,15 @@ function renderDetail() {
   const live = document.getElementById("d-live");
   if (st) {
     live.innerHTML = `
-      <div class="stat"><div class="top">🚲 vélos disponibles</div><div class="n">${st.bikes_available}</div></div>
-      <div class="stat"><div class="top">🅿️ bornes libres</div><div class="n">${st.docks_available}</div></div>`;
+      <div class="stat"><div class="top">🚲 Vélos disponibles</div><div class="n">${st.bikes_available}</div></div>
+      <div class="stat"><div class="top">🅿️ Bornes libres</div><div class="n">${st.docks_available}</div></div>`;
   } else {
     live.innerHTML = `<div class="stat"><div class="top">Aucune disponibilité relevée pour l'instant.</div></div>`;
   }
 
   const totalSamples = prediction.profile.reduce((a, s) => a + s.samples, 0);
   document.getElementById("d-samples").textContent =
-    `Prédiction : moyenne par tranche de 30 min — ${totalSamples} relevé(s) pour ce jour de semaine.`;
+    `Prédiction : moyenne par tranche de 30 min, ${totalSamples} relevé(s) pour ce jour de semaine.`;
 
   drawChart();
 }
@@ -180,7 +200,7 @@ function drawChart() {
   const nowM = parisMinutes(new Date().toISOString());
   const nx = xScale(nowM);
   svg.appendChild(el("line", { class: "now-line", x1: nx, y1: padT, x2: nx, y2: H - padB }));
-  svg.appendChild(text(Math.min(nx + 4, W - padR - 60), padT + 10, "maintenant", "now-label", "start"));
+  svg.appendChild(text(Math.min(nx + 4, W - padR - 60), padT + 10, "Maintenant", "now-label", "start"));
 
   // ligne réelle + points
   if (realPts.length) {
