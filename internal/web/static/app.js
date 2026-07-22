@@ -8,14 +8,9 @@ const COLORS = { green: "#16a34a", orange: "#f97316", red: "#dc2626", gray: "#94
 let currentMetric = "bikes";
 let currentData = null;
 
-const isDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-const styleURL = isDark
-  ? "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json"
-  : "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json";
-
 const map = new maplibregl.Map({
   container: "map",
-  style: styleURL,
+  style: "https://tiles.openfreemap.org/styles/liberty",
   center: [1.7, 47.3],
   zoom: 5,
 });
