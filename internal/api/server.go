@@ -1,6 +1,7 @@
 package api
 
 import (
+	"log"
 	"net/http"
 
 	_ "github.com/katchalamele/velodispo/internal/api/docs"
@@ -18,7 +19,15 @@ func New(reader StationReader) *echo.Echo {
 
 	e.Use(middleware.Recover())
 	e.Use(middleware.RequestID())
-	e.Use(middleware.Logger())
+	e.Use(middleware.RequestLoggerWithConfig(middleware.RequestLoggerConfig{
+		LogMethod: true,
+		LogURI:    true,
+		LogStatus: true,
+		LogValuesFunc: func(_ echo.Context, v middleware.RequestLoggerValues) error {
+			log.Printf("%s %s %d", v.Method, v.URI, v.Status)
+			return nil
+		},
+	}))
 
 	h := NewHandler(reader)
 

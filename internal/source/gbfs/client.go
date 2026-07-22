@@ -111,7 +111,7 @@ func (c *Client) fetchJSON(ctx context.Context, url string, out any) error {
 	if err != nil {
 		return fmt.Errorf("appel http: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		snippet, _ := io.ReadAll(io.LimitReader(resp.Body, 256))

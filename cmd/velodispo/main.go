@@ -48,7 +48,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("connexion base: %v", err)
 	}
-	defer st.Close()
+	defer func() { _ = st.Close() }()
 
 	httpClient := &http.Client{Timeout: cfg.Poll.HTTPTimeout}
 	sources, err := registry.Build(cfg.Poll.Sources, httpClient)

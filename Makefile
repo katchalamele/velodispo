@@ -1,4 +1,4 @@
-.PHONY: up down test itest migrate build vet fmt tidy swag
+.PHONY: up down test itest migrate build vet fmt tidy swag lint image prod-up prod-down
 
 up:
 	docker compose up
@@ -30,3 +30,16 @@ tidy:
 
 swag:
 	docker compose run --rm dev go run github.com/swaggo/swag/cmd/swag init -g cmd/velodispo/main.go -o internal/api/docs
+
+lint:
+	docker compose run --rm dev go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.1.6 run
+
+image:
+	docker build -t ghcr.io/katchalamele/velodispo:latest .
+
+prod-up:
+	docker compose -f compose.prod.yml pull
+	docker compose -f compose.prod.yml up -d
+
+prod-down:
+	docker compose -f compose.prod.yml down

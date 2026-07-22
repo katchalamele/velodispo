@@ -1,0 +1,10 @@
+.git
+.github
+docs
+*.md
+compose.yml
+compose.prod.yml
+.env
+.env.example
+.golangci.yml
+Makefile

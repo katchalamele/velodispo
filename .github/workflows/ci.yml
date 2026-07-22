@@ -1,0 +1,76 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+      - name: gofmt
+        run: test -z "$(gofmt -l .)" || { echo "Fichiers non formatés :"; gofmt -l .; exit 1; }
+      - uses: golangci/golangci-lint-action@v6
+        with:
+          version: v2.1.6
+
+  test:
+    runs-on: ubuntu-latest
+    services:
+      db:
+        image: timescale/timescaledb:2.17.2-pg16
+        env:
+          POSTGRES_USER: velodispo
+          POSTGRES_PASSWORD: velodispo
+          POSTGRES_DB: velodispo
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U velodispo -d velodispo"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DB_HOST: localhost
+      DB_PORT: "5432"
+      DB_USER: velodispo
+      DB_PASSWORD: velodispo
+      DB_NAME: velodispo
+      DB_SSLMODE: disable
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+      - name: Tests unitaires
+        run: go test ./...
+      - name: Tests d'intégration
+        run: go test -tags=integration ./...
+
+  build-push:
+    runs-on: ubuntu-latest
+    needs: [lint, test]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ghcr.io/katchalamele/velodispo:latest
+            ghcr.io/katchalamele/velodispo:${{ github.sha }}
