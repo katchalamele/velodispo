@@ -37,7 +37,7 @@ TimescaleDB, et expose une API REST + une carte MapLibre GL avec **prédiction**
 ## Stack
 
 Go 1.25 · Echo · PostgreSQL + TimescaleDB · GORM + pgx · golang-migrate ·
-MapLibre GL + OpenFreeMap · Docker Compose · GitHub Actions.
+MapLibre GL + CARTO basemaps · Docker Compose · GitHub Actions.
 
 ## Architecture
 

@@ -10,8 +10,8 @@ let currentData = null;
 
 const isDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
 const styleURL = isDark
-  ? "https://tiles.openfreemap.org/styles/dark"
-  : "https://tiles.openfreemap.org/styles/positron";
+  ? "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json"
+  : "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json";
 
 const map = new maplibregl.Map({
   container: "map",

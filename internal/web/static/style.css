@@ -166,6 +166,25 @@ body {
 
 .muted { color: var(--muted); font-size: 12px; margin: 10px 0 0; }
 
+/* ---------- Popup MapLibre (thème) ---------- */
+.maplibregl-popup-content {
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  padding: 7px 11px;
+  font: 600 13px system-ui, -apple-system, sans-serif;
+}
+.maplibregl-popup-anchor-top .maplibregl-popup-tip,
+.maplibregl-popup-anchor-top-left .maplibregl-popup-tip,
+.maplibregl-popup-anchor-top-right .maplibregl-popup-tip { border-bottom-color: var(--surface); }
+.maplibregl-popup-anchor-bottom .maplibregl-popup-tip,
+.maplibregl-popup-anchor-bottom-left .maplibregl-popup-tip,
+.maplibregl-popup-anchor-bottom-right .maplibregl-popup-tip { border-top-color: var(--surface); }
+.maplibregl-popup-anchor-left .maplibregl-popup-tip { border-right-color: var(--surface); }
+.maplibregl-popup-anchor-right .maplibregl-popup-tip { border-left-color: var(--surface); }
+
 /* ---------- Responsive ---------- */
 @media (max-width: 900px) {
   body { overflow: auto; height: auto; min-height: 100vh; }

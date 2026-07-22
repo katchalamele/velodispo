@@ -17,7 +17,7 @@ plutôt que les raccourcis. Ne pas se contenter d'un binaire stdlib.
 - Migrations : golang-migrate
 - Config : variables d'environnement (envconfig)
 - Orchestration : docker-compose (app + postgres/timescale + adminer)
-- Front : MapLibre GL + OpenFreeMap (tuiles vectorielles), vanilla JS
+- Front : MapLibre GL + CARTO basemaps (tuiles vectorielles), vanilla JS
 
 ## Principe d'architecture central
 Les sources sont hétérogènes : Nantes publie du GBFS 2.3, Paris du GBFS 1.0, et
