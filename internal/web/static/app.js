@@ -8,34 +8,72 @@ const COLORS = { green: "#16a34a", orange: "#f97316", red: "#dc2626", gray: "#94
 let currentMetric = "bikes";
 let currentData = null;
 
-const map = L.map("map", { preferCanvas: true, zoomControl: true }).setView([47.5, 1.5], 6);
-L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-  maxZoom: 19,
-  attribution: "&copy; OpenStreetMap",
-}).addTo(map);
+const isDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+const styleURL = isDark
+  ? "https://tiles.openfreemap.org/styles/dark"
+  : "https://tiles.openfreemap.org/styles/positron";
 
-function color(bikes, capacity) {
-  if (bikes === null || bikes === undefined) return COLORS.gray;
-  if (bikes === 0) return COLORS.red;
+const map = new maplibregl.Map({
+  container: "map",
+  style: styleURL,
+  center: [1.7, 47.3],
+  zoom: 5,
+});
+map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-left");
+
+function availabilityState(bikes, capacity) {
+  if (bikes === null || bikes === undefined) return "gray";
+  if (bikes === 0) return "red";
   const ratio = capacity > 0 ? bikes / capacity : 1;
-  if (ratio < 0.2) return COLORS.orange;
-  return COLORS.green;
+  return ratio < 0.2 ? "orange" : "green";
 }
 
 async function loadMap() {
   const stations = await fetch("/map").then((r) => r.json());
-  const bounds = [];
-  for (const s of stations) {
-    const c = color(s.bikes_available, s.capacity);
-    const m = L.circleMarker([s.lat, s.lon], {
-      radius: 5, color: c, fillColor: c, fillOpacity: 0.85, weight: 1,
-    }).addTo(map);
-    m.bindTooltip(`${s.name} — ${s.city}`);
-    m.on("click", () => selectStation(s.id));
-    bounds.push([s.lat, s.lon]);
-  }
-  if (bounds.length) map.fitBounds(bounds, { padding: [30, 30] });
+
+  const features = stations.map((s) => ({
+    type: "Feature",
+    geometry: { type: "Point", coordinates: [s.lon, s.lat] },
+    properties: {
+      id: s.id,
+      label: `${s.name} — ${s.city}`,
+      state: availabilityState(s.bikes_available, s.capacity),
+    },
+  }));
+
+  map.addSource("stations", { type: "geojson", data: { type: "FeatureCollection", features } });
+  map.addLayer({
+    id: "stations",
+    type: "circle",
+    source: "stations",
+    paint: {
+      "circle-color": ["match", ["get", "state"],
+        "green", COLORS.green, "orange", COLORS.orange, "red", COLORS.red, COLORS.gray],
+      "circle-radius": ["interpolate", ["linear"], ["zoom"], 5, 3, 11, 5, 15, 9],
+      "circle-stroke-width": 1,
+      "circle-stroke-color": "rgba(255,255,255,0.65)",
+      "circle-opacity": 0.9,
+    },
+  });
+
+  const popup = new maplibregl.Popup({ closeButton: false, closeOnClick: false, offset: 10 });
+  map.on("mouseenter", "stations", (e) => {
+    map.getCanvas().style.cursor = "pointer";
+    const f = e.features[0];
+    popup.setLngLat(f.geometry.coordinates).setText(f.properties.label).addTo(map);
+  });
+  map.on("mouseleave", "stations", () => {
+    map.getCanvas().style.cursor = "";
+    popup.remove();
+  });
+  map.on("click", "stations", (e) => selectStation(e.features[0].properties.id));
+
+  const bounds = new maplibregl.LngLatBounds();
+  for (const f of features) bounds.extend(f.geometry.coordinates);
+  if (!bounds.isEmpty()) map.fitBounds(bounds, { padding: 40, animate: false });
 }
+
+map.on("load", loadMap);
 
 function parisMinutes(iso) {
   const parts = parisFmt.formatToParts(new Date(iso));
@@ -169,5 +207,3 @@ document.querySelectorAll(".toggle button").forEach((btn) => {
     if (currentData) drawChart();
   });
 });
-
-loadMap();

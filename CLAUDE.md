@@ -4,7 +4,7 @@
 Service Go qui agrège la disponibilité temps réel de vélos en libre-service de
 plusieurs villes (Nantes/Bicloo, Paris/Vélib', extensible), normalise des flux
 hétérogènes dans un modèle unifié, historise la disponibilité, et expose une API
-REST + une carte Leaflet.
+REST + une carte MapLibre GL.
 Projet portfolio : privilégier le Go idiomatique et l'outillage de l'écosystème
 plutôt que les raccourcis. Ne pas se contenter d'un binaire stdlib.
 
@@ -17,7 +17,7 @@ plutôt que les raccourcis. Ne pas se contenter d'un binaire stdlib.
 - Migrations : golang-migrate
 - Config : variables d'environnement (envconfig)
 - Orchestration : docker-compose (app + postgres/timescale + adminer)
-- Front : Leaflet + OpenStreetMap, vanilla JS
+- Front : MapLibre GL + OpenFreeMap (tuiles vectorielles), vanilla JS
 
 ## Principe d'architecture central
 Les sources sont hétérogènes : Nantes publie du GBFS 2.3, Paris du GBFS 1.0, et

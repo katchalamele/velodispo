@@ -6,7 +6,7 @@
 Service Go qui agrège la disponibilité **temps réel** des vélos en libre-service
 de plusieurs villes (Nantes/Bicloo, Paris/Vélib', extensible), normalise des flux
 hétérogènes dans un modèle unifié, historise la disponibilité dans une hypertable
-TimescaleDB, et expose une API REST + une carte Leaflet avec **prédiction**.
+TimescaleDB, et expose une API REST + une carte MapLibre GL avec **prédiction**.
 
 <!-- Capture à ajouter : lancer la stack, ouvrir http://localhost:8081/, cliquer une station,
      enregistrer docs/map.png puis décommenter la ligne ci-dessous.
@@ -30,14 +30,14 @@ TimescaleDB, et expose une API REST + une carte Leaflet avec **prédiction**.
   Une source morte est isolée : elle n'affecte ni les autres ni les tics suivants.
 - **Prédiction.** Moyenne glissante par `(station, jour de semaine, tranche de
   30 min)` en heure locale Europe/Paris, pour vélos et bornes.
-- **Un seul binaire autoportant.** Front (HTML/CSS/JS + Leaflet), migrations SQL et
+- **Un seul binaire autoportant.** Front (HTML/CSS/JS + MapLibre GL), migrations SQL et
   base des fuseaux horaires sont **embarqués** (`//go:embed`, `time/tzdata`). L'image
   de prod (~40 Mo, distroless) ne contient que l'exécutable.
 
 ## Stack
 
 Go 1.25 · Echo · PostgreSQL + TimescaleDB · GORM + pgx · golang-migrate ·
-Leaflet/OpenStreetMap · Docker Compose · GitHub Actions.
+MapLibre GL + OpenFreeMap · Docker Compose · GitHub Actions.
 
 ## Architecture
 
@@ -51,7 +51,7 @@ internal/
   ingest              poller concurrent (errgroup borné, isolation par source)
   store               Postgres/Timescale : GORM (CRUD) + pgx (time-series) + migrations
   api                 handlers Echo, DTO, OpenAPI/Swagger
-  web                 front vanilla JS + Leaflet (embarqué)
+  web                 front vanilla JS + MapLibre GL (embarqué)
   config              variables d'environnement (envconfig)
 ```
 
