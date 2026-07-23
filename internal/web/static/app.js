@@ -2,6 +2,9 @@ const SVGNS = "http://www.w3.org/2000/svg";
 const parisFmt = new Intl.DateTimeFormat("fr-FR", {
   timeZone: "Europe/Paris", hour: "2-digit", minute: "2-digit", hour12: false,
 });
+const parisDayFmt = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "Europe/Paris", year: "numeric", month: "2-digit", day: "2-digit",
+});
 
 const COLORS = { green: "#16a34a", orange: "#f97316", red: "#dc2626", gray: "#94a3b8" };
 
@@ -146,7 +149,9 @@ function drawChart() {
   const predPts = prediction.profile
     .filter((s) => s.samples > 0)
     .map((s) => ({ x: s.minutes, y: s[predKey] }));
+  const today = parisDayFmt.format(new Date());
   const realPts = history.data
+    .filter((d) => parisDayFmt.format(new Date(d.time)) === today)
     .map((d) => ({ x: parisMinutes(d.time), y: d[key] }))
     .sort((a, b) => a.x - b.x);
 
@@ -212,6 +217,112 @@ function drawChart() {
       svg.appendChild(el("circle", { class: "serie-real-dot", cx: xScale(p.x), cy: yScale(p.y), r: 3 }));
     }
   }
+
+  attachHover({ svg, el, realPts, predPts, xScale, yScale, W, H, padL, padR, padT, padB });
+}
+
+function nearestByX(pts, mx) {
+  let best = null, bd = Infinity;
+  for (const p of pts) {
+    const d = Math.abs(p.x - mx);
+    if (d < bd) { bd = d; best = p; }
+  }
+  return best;
+}
+
+function attachHover(ctx) {
+  const { svg, el, realPts, predPts, xScale, yScale, W, H, padL, padR, padT, padB } = ctx;
+  if (!realPts.length && !predPts.length) return;
+
+  const hover = el("g", { class: "chart-hover", visibility: "hidden" });
+  const vline = el("line", { class: "hover-line", y1: padT, y2: H - padB });
+  const dotReal = el("circle", { class: "hover-dot-real", r: 4.5, visibility: "hidden" });
+  const dotPred = el("circle", { class: "hover-dot-pred", r: 4.5, visibility: "hidden" });
+  const box = el("rect", { class: "chart-tip-box", rx: 8 });
+  const t1 = el("text", { class: "chart-tip-time" });
+  const t2 = el("text", { class: "chart-tip-val" });
+  const t3 = el("text", { class: "chart-tip-val" });
+  hover.append(vline, dotReal, dotPred, box, t1, t2, t3);
+  svg.appendChild(hover);
+
+  const capture = el("rect", {
+    class: "hover-capture",
+    x: padL, y: padT, width: W - padL - padR, height: H - padT - padB, fill: "transparent",
+  });
+  svg.appendChild(capture);
+
+  const cursorMinutes = (evt) => {
+    const pt = svg.createSVGPoint();
+    pt.x = evt.clientX;
+    pt.y = evt.clientY;
+    const loc = pt.matrixTransform(svg.getScreenCTM().inverse());
+    return ((loc.x - padL) / (W - padL - padR)) * 1440;
+  };
+
+  capture.addEventListener("mousemove", (evt) => {
+    const m = cursorMinutes(evt);
+    const anchor = realPts.length ? nearestByX(realPts, m) : nearestByX(predPts, m);
+    if (!anchor) return;
+
+    const ax = anchor.x;
+    const appx = xScale(ax);
+    const rp = realPts.length ? nearestByX(realPts, ax) : null;
+    const pp = predPts.length ? nearestByX(predPts, ax) : null;
+    const showReal = rp && Math.abs(rp.x - ax) <= 30;
+    const showPred = pp && Math.abs(pp.x - ax) <= 30;
+
+    vline.setAttribute("x1", appx);
+    vline.setAttribute("x2", appx);
+
+    if (showReal) {
+      dotReal.setAttribute("cx", appx);
+      dotReal.setAttribute("cy", yScale(rp.y));
+      dotReal.setAttribute("visibility", "visible");
+    } else {
+      dotReal.setAttribute("visibility", "hidden");
+    }
+    if (showPred) {
+      dotPred.setAttribute("cx", appx);
+      dotPred.setAttribute("cy", yScale(pp.y));
+      dotPred.setAttribute("visibility", "visible");
+    } else {
+      dotPred.setAttribute("visibility", "hidden");
+    }
+
+    const unit = currentMetric === "bikes" ? "vélos" : "bornes";
+    const hh = String(Math.floor(ax / 60)).padStart(2, "0");
+    const mm = String(Math.round(ax) % 60).padStart(2, "0");
+    t1.textContent = `${hh}:${mm}`;
+    t2.textContent = showReal ? `Réel : ${rp.y} ${unit}` : "";
+    t3.textContent = showPred ? `Typique : ${Math.round(pp.y)} ${unit}` : "";
+
+    const lines = [t2, t3].filter((t) => t.textContent);
+    const boxW = 148, lineH = 16, padIn = 8;
+    const boxH = padIn * 2 + 15 + lines.length * lineH;
+    let bx = appx + 12;
+    if (bx + boxW > W - padR) bx = appx - 12 - boxW;
+    const anchorY = showReal ? yScale(rp.y) : yScale(pp.y);
+    let by = anchorY - boxH - 10;
+    if (by < padT) by = anchorY + 12;
+    by = Math.max(padT, Math.min(by, H - padB - boxH));
+
+    box.setAttribute("x", bx);
+    box.setAttribute("y", by);
+    box.setAttribute("width", boxW);
+    box.setAttribute("height", boxH);
+    t1.setAttribute("x", bx + padIn);
+    t1.setAttribute("y", by + padIn + 12);
+    lines.forEach((t, i) => {
+      t.setAttribute("x", bx + padIn);
+      t.setAttribute("y", by + padIn + 15 + lineH * (i + 1));
+    });
+
+    hover.setAttribute("visibility", "visible");
+  });
+
+  capture.addEventListener("mouseleave", () => {
+    hover.setAttribute("visibility", "hidden");
+  });
 }
 
 document.querySelectorAll(".toggle button").forEach((btn) => {
