@@ -32,6 +32,8 @@ services:
       db:
         condition: service_healthy
     restart: unless-stopped
+    labels:
+      com.centurylinklabs.watchtower.enable: "true"
 
 volumes:
   db-data:
